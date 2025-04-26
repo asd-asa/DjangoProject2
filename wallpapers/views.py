@@ -1,10 +1,11 @@
 from PIL import Image
 from rest_framework import generics, status
-from rest_framework.generics import ListAPIView
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.parsers import MultiPartParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from rest_framework.generics import ListAPIView
 from .models import Wallpaper
 from .serializers import WallpaperSerializer, WallpaperPagination
 
@@ -24,12 +25,8 @@ class WallpaperDetail(generics.RetrieveUpdateDestroyAPIView):
 # 批量上传壁纸的视图
 class BulkUploadView(APIView):
     parser_classes = (MultiPartParser,)  # 指定该视图使用 MultiPartParser 解析器，
-    # 用于处理 multipart/form-data 类型的请求，通常用于文件上传
-
-    # 这里可以添加认证和权限类
-    # authentication_classes = []#（注释掉的代码）用于定义视图的认证方式。
-    # 如果为空或未设置，则视图不强制进行用户认证，任何用户都可以访问
-    # permission_classes = []
+    authentication_classes = [TokenAuthentication]  # 添加 Token 认证
+    # permission_classes = [IsAuthenticated]  # 仅允许已认证用户访问
 
     def post(self, request):
         files = request.FILES.getlist("images")
@@ -60,16 +57,6 @@ class BulkUploadView(APIView):
             {"count": len(created_data), "results": created_data},
             status=status.HTTP_201_CREATED,
         )
-
-
-# 壁纸列表分类视图
-# class WallpaperListView(ListAPIView):
-#     queryset = Wallpaper.objects.all()
-#     serializer_class = WallpaperSerializer
-#     pagination_class = WallpaperPagination  # 指定分页类
-from rest_framework.generics import ListAPIView
-from .models import Wallpaper
-from .serializers import WallpaperSerializer, WallpaperPagination
 
 
 class WallpaperListView(ListAPIView):

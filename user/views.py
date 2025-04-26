@@ -1,8 +1,7 @@
 from django.http import JsonResponse
-from django.shortcuts import render
 from django.views import View
 from rest_framework_jwt.settings import api_settings
-
+import json
 from user.models import SysUser
 from user.serializers import SysUserSerializer
 
@@ -48,7 +47,8 @@ class TestView(View):
 
 class JwtTestView(View):
     def get(self, request):
-        user = SysUser.objects.get(username="张三", password="123456")
+        users = SysUser.objects.all()
+        tokens = []
         # 生成载荷
         jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
         jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
@@ -57,3 +57,32 @@ class JwtTestView(View):
         # 生成token
         token = jwt_encode_handler(payload)
         return JsonResponse({"code": 200, "token": token})
+
+
+class RegisterView(View):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            username = data.get("username")
+            password = data.get("password")
+        except Exception as e:
+            return JsonResponse({"code": 400, "message": "请求数据格式错误"})
+
+        # 检查参数是否为空
+        if not username or not password:
+            return JsonResponse({"code": 400, "message": "用户名或密码不能为空"})
+        # 检查用户名是否已存在
+        if SysUser.objects.filter(username=username).exists():
+            return JsonResponse({"code": 400, "message": "用户名已存在"})
+
+        # 创建用户
+        try:
+            user = SysUser.objects.create(
+                username=username,
+                password=password,
+            )
+            return JsonResponse(
+                {"code": 200, "message": "注册成功", "user_id": user.id}
+            )
+        except Exception as e:
+            return JsonResponse({"code": 500, "message": "注册失败", "error": str(e)})
