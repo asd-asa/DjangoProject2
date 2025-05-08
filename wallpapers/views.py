@@ -1,13 +1,14 @@
 from PIL import Image
 from rest_framework import generics, status
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import TokenAuthentication, get_authorization_header
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.parsers import MultiPartParser
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from .models import Wallpaper
 from .serializers import WallpaperSerializer, WallpaperPagination
+from rest_framework.permissions import IsAuthenticated
 
 
 # 获取和创建壁纸的视图
@@ -25,10 +26,17 @@ class WallpaperDetail(generics.RetrieveUpdateDestroyAPIView):
 # 批量上传壁纸的视图
 class BulkUploadView(APIView):
     parser_classes = (MultiPartParser,)  # 指定该视图使用 MultiPartParser 解析器，
-    authentication_classes = [TokenAuthentication]  # 添加 Token 认证
-    # permission_classes = [IsAuthenticated]  # 仅允许已认证用户访问
+    # permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
 
     def post(self, request):
+        # 检查 Authorization 头部
+        auth_header = get_authorization_header(request).split()
+        if not auth_header or auth_header[0].lower() != b"bearer":
+            raise AuthenticationFailed("Authorization header missing or invalid")
+
+        token = auth_header[1]
+
         files = request.FILES.getlist("images")
         created_data = []
 

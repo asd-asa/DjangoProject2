@@ -19,11 +19,13 @@ Including another URLconf
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import home_view
 
 #
 # from user.views import index, IndexView
 
 urlpatterns = [
+    path("", home_view, name="home"),
     #    path('admin/', admin.site.urls),
     path("user/", include("user.urls")),  # 用户模块
     path("wallpapers/", include("wallpapers.urls")),  # 壁纸模块
