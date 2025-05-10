@@ -1,4 +1,7 @@
+from io import BytesIO
+
 from PIL import Image
+from django.core.files.base import ContentFile
 from rest_framework import generics, status
 from rest_framework.authentication import TokenAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
@@ -46,31 +49,13 @@ class BulkUploadView(APIView):
                 image = Image.open(img)
                 width, height = image.size
 
-                # 生成压缩图片
-                image_url = image.copy()
-
-                compressed_io = BytesIO()
-                if img.name.lower().endswith(".png"):
-                    image_url.save(
-                        compressed_io, format="PNG", optimize=True, quality=85
-                    )
-                else:
-                    image_url.save(compressed_io, format="JPEG", quality=75)
-                    # 生成唯一文件名
-                    unique_name = f"{uuid.uuid4().hex[:10]}_{img.name}"
-                    compressed_file = ContentFile(
-                        compressed_io.getvalue(), name=f"compressed_{unique_name}"
-                    )
-                    original_file = ContentFile(
-                        img.read(), name=f"original_{unique_name}"
-                    )
                 # 创建 Wallpaper 对象
                 wallpaper = Wallpaper.objects.create(
                     title=request.POST.get(
                         "title", img.name.split(".")[0]
                     ),  # 从 POST 获取标题
-                    image=original_file,
-                    image_url=compressed_file,  # 使用压缩后的图片
+                    image=img,
+                    image_url=img,
                     category=request.POST.get("category", "未分类"),  # 从 POST 获取分类
                     description=request.POST.get("description", ""),  # 从 POST 获取描述
                     tags=request.POST.get("tags", []),  # 从 POST 获取标签
