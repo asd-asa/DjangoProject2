@@ -9,6 +9,7 @@ class Wallpaper(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
     downloads = models.PositiveIntegerField(default=0)
     image = models.ImageField(upload_to="wallpapers/")
+    image_url = models.ImageField(upload_to="yasuo/")
     resolution = models.CharField(max_length=20)
 
     def __str__(self):
