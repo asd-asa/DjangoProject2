@@ -1,7 +1,4 @@
-from io import BytesIO
-
 from PIL import Image
-from django.core.files.base import ContentFile
 from rest_framework import generics, status
 from rest_framework.authentication import TokenAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
@@ -12,18 +9,6 @@ from rest_framework.generics import ListAPIView
 from .models import Wallpaper
 from .serializers import WallpaperSerializer, WallpaperPagination
 from rest_framework.permissions import IsAuthenticated
-
-
-# 获取和创建壁纸的视图
-class WallpaperListCreate(generics.ListCreateAPIView):
-    queryset = Wallpaper.objects.all()
-    serializer_class = WallpaperSerializer
-
-
-# 获取、更新和删除单个壁纸的视图
-class WallpaperDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Wallpaper.objects.all()
-    serializer_class = WallpaperSerializer
 
 
 # 批量上传壁纸的视图
@@ -89,6 +74,10 @@ class WallpaperListView(ListAPIView):
         category = self.request.query_params.get("category")
         # 分辨率
         resolution = self.request.query_params.get("resolution")
+        # 标题
+        tags = self.request.query_params.get("tags")
+        if tags:
+            queryset = queryset.filter(tags__icontains=tags)
         if category:
             queryset = queryset.filter(category=category)
         if resolution == "1K":
@@ -119,3 +108,23 @@ class WallpaperListView(ListAPIView):
             "total_items": self.get_queryset().count(),
         }
         return response
+
+
+# 搜索壁纸通过名字title
+class WallpaperSearchView(ListAPIView):
+    """
+    壁纸搜索视图，通过标题搜索壁纸。
+    """
+
+    serializer_class = WallpaperSerializer  # 使用 WallpaperSerializer 进行序列化
+    queryset = Wallpaper.objects.all()  # 添加默认查询集
+
+    def get_queryset(self):
+        """
+        可重写此方法以动态调整查询集。
+        """
+        queryset = super().get_queryset()  # 确保调用父类的 get_queryset()
+        tags = self.request.query_params.get("tags")
+        if tags:
+            queryset = queryset.filter(tags__icontains=tags)
+        return queryset
