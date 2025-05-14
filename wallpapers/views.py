@@ -17,6 +17,31 @@ class BulkUploadView(APIView):
     # permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
 
+    def process_image(self, image_file):
+        try:
+            with Image.open(image_file) as img:
+                width, height = img.size
+                aspect_ratio = width / height
+
+                # 自动分类逻辑
+                if 0.8 <= aspect_ratio <= 1.2 and max(width, height) <= 2048:
+                    media_type = "avatar"
+                elif aspect_ratio > 1.2 and width >= height and width >= 1920:
+                    media_type = "computer"
+                elif aspect_ratio < 0.8 and height > width and height >= 1920:
+                    media_type = "mobile"
+                else:
+                    media_type = "unknown"
+
+                return {
+                    "width": width,
+                    "height": height,
+                    "media_type": media_type,
+                }
+
+        except Exception as e:
+            raise ValueError(f"图片处理失败: {str(e)}")
+
     def post(self, request):
         # 检查 Authorization 头部
         auth_header = get_authorization_header(request).split()
@@ -28,11 +53,9 @@ class BulkUploadView(APIView):
         files = request.FILES.getlist("images")
         created_data = []
 
-        for img in files:
+        for index, img in enumerate(files):
             try:
-                # 使用 Pillow 获取图片宽度和高度
-                image = Image.open(img)
-                width, height = image.size
+                img_data = self.process_image(img)
 
                 # 创建 Wallpaper 对象
                 wallpaper = Wallpaper.objects.create(
@@ -43,8 +66,9 @@ class BulkUploadView(APIView):
                     image_url=img,
                     category=request.POST.get("category", "未分类"),  # 从 POST 获取分类
                     description=request.POST.get("description", ""),  # 从 POST 获取描述
+                    media_type=img_data["media_type"],
                     tags=request.POST.get("tags", []),  # 从 POST 获取标签
-                    resolution=f"{width}x{height}",  # 获取分辨率
+                    resolution=f"{img_data['width']}x{img_data['height']}",  # 获取分辨率
                 )
                 created_data.append(WallpaperSerializer(wallpaper).data)
             except Exception as e:
@@ -74,6 +98,10 @@ class WallpaperListView(ListAPIView):
         category = self.request.query_params.get("category")
         # 分辨率
         resolution = self.request.query_params.get("resolution")
+        # 壁纸类型
+        media_type = self.request.query_params.get("media_type")
+        if media_type:
+            queryset = queryset.filter(media_type=media_type)
         # 标题
         tags = self.request.query_params.get("tags")
         if tags:
