@@ -12,4 +12,10 @@ urlpatterns = [
         views.WallpaperSearchView.as_view(),
         name="wallpaper_search",
     ),
+    # 下载
+    path(
+        "wallpapers/download/<int:pk>/",
+        views.WallpaperDownloadView.as_view(),
+        name="wallpaper_download",
+    ),
 ]

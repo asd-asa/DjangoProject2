@@ -138,7 +138,7 @@ class WallpaperListView(ListAPIView):
         return response
 
 
-# 搜索壁纸通过名字title
+# 搜索壁纸通过tag
 class WallpaperSearchView(ListAPIView):
     """
     壁纸搜索视图，通过标题搜索壁纸。
@@ -156,3 +156,22 @@ class WallpaperSearchView(ListAPIView):
         if tags:
             queryset = queryset.filter(tags__icontains=tags)
         return queryset
+
+
+# 下载壁纸数量实时同步
+class WallpaperDownloadView(APIView):
+    """
+    壁纸下载视图，更新下载次数。
+    """
+
+    def post(self, request, pk):
+        try:
+            wallpaper = Wallpaper.objects.get(pk=pk)
+            wallpaper.downloads += 1
+            wallpaper.save()
+            return Response(
+                {"message": "下载次数更新成功", "downloads": wallpaper.downloads},
+                status=status.HTTP_200_OK,
+            )
+        except Wallpaper.DoesNotExist:
+            return Response({"error": "壁纸不存在"}, status=status.HTTP_404_NOT_FOUND)
